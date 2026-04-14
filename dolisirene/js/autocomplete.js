@@ -20,13 +20,15 @@
 
     function setSelectVal(selector, value){
         var el = document.querySelector(selector);
-        if (!el || !value) return;
-        // Try by value
+        if (!el || value === null || value === undefined || value === '') return;
         for (var i=0; i<el.options.length; i++){
-            if (el.options[i].value == value) { el.selectedIndex = i; el.dispatchEvent(new Event('change', {bubbles:true})); return; }
+            if (String(el.options[i].value) === String(value)) {
+                el.selectedIndex = i;
+                if (window.jQuery) { try { jQuery(el).val(value).trigger('change'); } catch(e){} }
+                el.dispatchEvent(new Event('change', {bubbles:true}));
+                return;
+            }
         }
-        // Jquery select2 refresh if present
-        if (window.jQuery) { try { jQuery(el).trigger('change'); } catch(e){} }
     }
 
     function applyResult(r){
@@ -35,10 +37,12 @@
         setVal('input[name="address"], textarea[name="address"]', [r.address, r.address2].filter(Boolean).join("\n"));
         setVal('input[name="zipcode"]', r.postal_code);
         setVal('input[name="town"]', r.city);
-        setVal('input[name="idprof1"]', r.siret);
-        setVal('input[name="idprof2"]', r.ape);
+        // Dolibarr: idprof1=SIREN (9), idprof2=SIRET (14), idprof3=APE/NAF
+        setVal('input[name="idprof1"]', r.siren);
+        setVal('input[name="idprof2"]', r.siret);
+        setVal('input[name="idprof3"]', r.ape);
         setVal('input[name="tva_intra"]', r.tva_intra);
-        setVal('input[name="forme_juridique_code"]', r.legal_form);
+        setSelectVal('select[name="forme_juridique_code"]', r.legal_form);
         setSelectVal('select[name="country_id"]', cfg.country_id || 1);
         closeBox();
     }

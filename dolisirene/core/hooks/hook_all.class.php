@@ -1,7 +1,8 @@
 <?php
 /* Copyright (C) 2026 Siliteo
  *
- * Hook: add "Complete via Sirene" button on societe card
+ * Hook (context 'all'): inject autocomplete on societe/card.php create/edit
+ * + "Completer via Sirene" button on existing societe cards.
  */
 
 class ActionsDolisirene
@@ -18,7 +19,7 @@ class ActionsDolisirene
     }
 
     /**
-     * Add button on third-party card toolbar when data is incomplete.
+     * Add "Completer via Sirene" button on third-party card toolbar.
      */
     public function addMoreActionsButtons($parameters, &$object, &$action, $hookmanager)
     {
@@ -28,8 +29,8 @@ class ActionsDolisirene
         if (empty($user->id) || !$user->hasRight('dolisirene', 'use')) return 0;
         if (!is_object($object) || empty($object->id)) return 0;
 
-        $ctx = $parameters['context'] ?? '';
-        if (stripos($ctx, 'thirdpartycard') === false && stripos($ctx, 'societecard') === false) return 0;
+        $uri = $_SERVER['REQUEST_URI'] ?? '';
+        if (strpos($uri, '/societe/card.php') === false) return 0;
 
         $langs->load("dolisirene@dolisirene");
 
@@ -37,36 +38,29 @@ class ActionsDolisirene
         $missing = array();
         if (empty($object->siret) && empty($object->idprof1)) $missing[] = 'SIRET';
         if (empty($object->tva_intra)) $missing[] = 'TVA';
-        if (empty($object->ape) && empty($object->idprof2)) $missing[] = 'APE';
+        if (empty($object->ape) && empty($object->idprof3)) $missing[] = 'APE';
 
         $label = $langs->trans("DolisireneCompleteBtn");
         if (!empty($missing)) $label .= ' ('.implode(', ', $missing).')';
 
-        $class = !empty($missing) ? 'butAction' : 'butActionRefused';
         $this->resprints = '<a class="butAction" href="'.dol_escape_htmltag($url).'" title="'.dol_escape_htmltag($langs->trans("DolisireneCompleteTooltip")).'">'.dol_escape_htmltag($label).'</a>';
 
         return 0;
     }
 
     /**
-     * Inject autocomplete on the third-party create form (societe/card.php?action=create).
-     * Fires at the end of the page, in the societecard context.
+     * Inject autocomplete JS on societe/card.php create/edit page (fires at end of every page).
      */
-    public function printCommonFooter($parameters, &$object, &$action, $hookmanager)
+    public function beforeBodyClose($parameters, &$object, &$action, $hookmanager)
     {
         global $user, $langs, $conf;
 
         if (!isModEnabled('dolisirene')) return 0;
         if (empty($user->id) || !$user->hasRight('dolisirene', 'use')) return 0;
 
-        $ctx = $parameters['context'] ?? '';
-        if (stripos($ctx, 'thirdpartycard') === false && stripos($ctx, 'societecard') === false) return 0;
-
-        // Only on create/edit forms
         $uri = $_SERVER['REQUEST_URI'] ?? '';
-        $isCreate = (strpos($uri, 'action=create') !== false) || ($action === 'create');
-        $isEdit   = (strpos($uri, 'action=edit') !== false)   || ($action === 'edit');
-        if (!$isCreate && !$isEdit) return 0;
+        if (strpos($uri, '/societe/card.php') === false) return 0;
+        if (strpos($uri, 'action=create') === false && strpos($uri, 'action=edit') === false) return 0;
 
         $langs->load("dolisirene@dolisirene");
 
@@ -86,18 +80,14 @@ class ActionsDolisirene
             ),
         );
 
-        $out = "\n<!-- Dolisirene autocomplete -->\n";
+        $out = "\n<!-- Dolisirene autocomplete v1.2 -->\n";
         $out .= '<script>window.dolisirene_autocomplete = '.json_encode($cfg).';</script>'."\n";
         $jsPath = dol_buildpath('/dolisirene/js/autocomplete.js', 0);
         $jsUrl  = dol_buildpath('/dolisirene/js/autocomplete.js', 1);
         if (@file_exists($jsPath)) {
             $out .= '<script src="'.$jsUrl.'?v='.@filemtime($jsPath).'"></script>'."\n";
         }
-        $cssPath = dol_buildpath('/dolisirene/css/dolisirene.css', 0);
-        $cssUrl  = dol_buildpath('/dolisirene/css/dolisirene.css', 1);
-        if (@file_exists($cssPath)) {
-            $out .= '<link rel="stylesheet" href="'.$cssUrl.'?v='.@filemtime($cssPath).'">'."\n";
-        }
+        $out .= "<!-- End Dolisirene -->\n";
 
         $this->resprints = $out;
         return 0;
