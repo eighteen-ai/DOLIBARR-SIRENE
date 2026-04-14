@@ -1,0 +1,24 @@
+# Dolisirene FR translations
+ModuleDolisireneName = Dolisirene
+ModuleDolisireneDesc = Recherche et creation de tiers depuis l'API officielle Sirene (data.gouv.fr)
+
+DolisireneSearch = Rechercher une entreprise (Sirene)
+DolisireneSetup = Configuration Dolisirene
+DolisireneIntro = Recherchez une entreprise francaise par nom. Les donnees proviennent de l'API officielle Recherche Entreprises (data.gouv.fr).
+DolisireneQueryPlaceholder = Nom de l'entreprise (ex: COZNEK)
+DolisireneSearching = Recherche en cours...
+DolisireneNoResults = Aucun resultat
+DolisireneCreate = Creer le tiers
+DolisireneComplete = Completer depuis Sirene
+DolisireneCompleteIntro = Rechercher une entreprise pour completer les informations manquantes du tiers "%s".
+DolisireneCompleteBtn = Completer via Sirene
+DolisireneCompleteTooltip = Recherche dans Sirene une entreprise correspondante pour completer la fiche
+DolisireneCompleted = Fiche completee
+DolisireneOverwrite = Ecraser les valeurs existantes
+DolisireneInactive = Cessee
+DolisireneMinChars = Saisissez au moins 2 caracteres
+DolisireneApiUrl = URL de l'API Recherche Entreprises
+DolisireneMaxResults = Nombre maximum de resultats
+DolisireneCountryId = ID du pays par defaut (France = 1)
+DolisireneAbout = Module de recherche et creation de tiers a partir des donnees officielles Sirene
+DolisireneAboutSource = Source des donnees :
