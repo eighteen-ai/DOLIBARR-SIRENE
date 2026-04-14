@@ -21,23 +21,25 @@
         el.className = 'dolisirene-status' + (cls ? ' dolisirene-status-'+cls : '');
     }
 
-    function renderResults(list){
+    function renderResults(list, noteHtml){
         var c = $('dolisirene-results');
         if (!c) return;
         if (!list.length) { c.innerHTML = ''; setStatus(cfg.labels.no_results, 'warn'); return; }
         setStatus('');
         var html = '';
+        if (noteHtml) html += '<div class="dolisirene-note">'+noteHtml+'</div>';
         list.forEach(function(r){
-            var addr = [r.address, r.address2].filter(Boolean).join(', ');
+            var street = [r.address, r.address2].filter(Boolean).join(', ');
+            var cityLine = [r.postal_code, r.city].filter(Boolean).join(' ');
             var inactive = r.active ? '' : '<span class="dolisirene-badge-inactive">'+esc(cfg.labels.inactive)+'</span>';
             html += '<div class="dolisirene-card">';
             html += '<div class="dolisirene-card-head">';
             html += '<h3>'+esc(r.name)+' '+inactive+'</h3>';
-            html += '<button type="button" class="button button-add" data-siret="'+esc(r.siret)+'" data-idx="'+esc(r._idx)+'">'+esc(cfg.labels.create)+'</button>';
+            html += '<button type="button" class="button button-add" data-idx="'+esc(r._idx)+'">'+esc(cfg.labels.create)+'</button>';
             html += '</div>';
             html += '<div class="dolisirene-card-body">';
-            html += '<div>'+esc(addr)+'</div>';
-            html += '<div>'+esc(r.postal_code)+' '+esc(r.city)+'</div>';
+            if (street) html += '<div>'+esc(street)+'</div>';
+            html += '<div>'+esc(cityLine)+'</div>';
             html += '<div class="dolisirene-meta">';
             html += '<span>'+esc(cfg.labels.siret)+': <code>'+esc(r.siret)+'</code></span>';
             if (r.tva_intra) html += '<span>'+esc(cfg.labels.tva)+': <code>'+esc(r.tva_intra)+'</code></span>';
@@ -108,6 +110,22 @@
             .catch(function(e){ setStatus(String(e), 'err'); });
     }
 
+    function callApi(q, cp, city){
+        var fd = new FormData();
+        fd.append('token', cfg.token);
+        fd.append('q', q);
+        if (cp)   fd.append('cp', cp);
+        if (city) fd.append('city', city);
+        return fetch(cfg.ajax_url, { method: 'POST', body: fd, credentials: 'same-origin' })
+            .then(function(res){ return res.json(); });
+    }
+
+    function longestToken(s){
+        var parts = (s || '').split(/\s+/).filter(function(w){ return w.length > 3; });
+        parts.sort(function(a,b){ return b.length - a.length; });
+        return parts[0] || (s || '').trim();
+    }
+
     function doSearch(){
         var q = ($('dolisirene-q') || {}).value || '';
         var cp = ($('dolisirene-cp') || {}).value || '';
@@ -115,22 +133,43 @@
         q = q.trim();
         if (q.length < 2) { setStatus(cfg.labels.min_chars, 'warn'); return; }
 
-        setStatus(cfg.labels.searching, 'info');
-        var fd = new FormData();
-        fd.append('token', cfg.token);
-        fd.append('q', q);
-        fd.append('cp', cp);
-        fd.append('city', city);
+        // Build attempt chain: in 'complete' mode, fallback progressively
+        var attempts = [];
+        if (cfg.mode === 'complete') {
+            attempts.push({ q: q, cp: cp, city: city,
+                label: 'Nom + CP + ville' });
+            if (cp || city) attempts.push({ q: q, cp: cp, city: '',
+                label: 'Nom + CP (ville retiree)' });
+            if (cp) attempts.push({ q: q, cp: '', city: '',
+                label: 'Nom seul' });
+            var tok = longestToken(q);
+            if (tok && tok !== q) attempts.push({ q: tok, cp: cp, city: '',
+                label: 'Mot principal "'+tok+'" + CP' });
+            if (tok && tok !== q) attempts.push({ q: tok, cp: '', city: '',
+                label: 'Mot principal "'+tok+'" seul' });
+        } else {
+            attempts.push({ q: q, cp: cp, city: city, label: '' });
+        }
 
-        fetch(cfg.ajax_url, { method: 'POST', body: fd, credentials: 'same-origin' })
-            .then(function(res){ return res.json(); })
-            .then(function(data){
-                if (data.error) { setStatus(data.error, 'err'); return; }
-                var list = data.results || [];
-                list.forEach(function(r, i){ r._idx = i; });
-                renderResults(list);
-            })
-            .catch(function(e){ setStatus(String(e), 'err'); });
+        setStatus(cfg.labels.searching, 'info');
+
+        var i = 0;
+        function tryNext(){
+            if (i >= attempts.length) { setStatus(cfg.labels.no_results, 'warn'); return; }
+            var a = attempts[i++];
+            callApi(a.q, a.cp, a.city).then(function(data){
+                if (data && data.error) { setStatus(data.error, 'err'); return; }
+                var list = (data && data.results) || [];
+                if (list.length === 0) { tryNext(); return; }
+                list.forEach(function(r, idx){ r._idx = idx; });
+                var note = '';
+                if (cfg.mode === 'complete' && a.label) {
+                    note = 'Recherche: <strong>'+esc(a.label)+'</strong> &mdash; '+list.length+' resultat(s)';
+                }
+                renderResults(list, note);
+            }).catch(function(e){ setStatus(String(e), 'err'); });
+        }
+        tryNext();
     }
 
     document.addEventListener('DOMContentLoaded', function(){
