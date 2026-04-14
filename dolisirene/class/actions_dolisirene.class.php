@@ -1,8 +1,9 @@
 <?php
 /* Copyright (C) 2026 Siliteo
  *
- * Hook (context 'all'): inject autocomplete on societe/card.php create/edit
- * + "Completer via Sirene" button on existing societe cards.
+ * Dolisirene hook class:
+ *  - addMoreActionsButtons: bouton "Completer via Sirene" sur fiche tiers existante
+ *  - llxFooter: injection de l'autocomplete Sirene sur societe/card.php create/edit
  */
 
 class ActionsDolisirene
@@ -18,9 +19,6 @@ class ActionsDolisirene
         $this->db = $db;
     }
 
-    /**
-     * Add "Completer via Sirene" button on third-party card toolbar.
-     */
     public function addMoreActionsButtons($parameters, &$object, &$action, $hookmanager)
     {
         global $user, $langs;
@@ -31,12 +29,13 @@ class ActionsDolisirene
 
         $uri = $_SERVER['REQUEST_URI'] ?? '';
         if (strpos($uri, '/societe/card.php') === false) return 0;
+        if (!isset($object->element) || $object->element !== 'societe') return 0;
 
         $langs->load("dolisirene@dolisirene");
 
         $url = dol_buildpath('/dolisirene/complete.php', 1).'?socid='.((int) $object->id);
         $missing = array();
-        if (empty($object->siret) && empty($object->idprof1)) $missing[] = 'SIRET';
+        if (empty($object->siret) && empty($object->idprof2)) $missing[] = 'SIRET';
         if (empty($object->tva_intra)) $missing[] = 'TVA';
         if (empty($object->ape) && empty($object->idprof3)) $missing[] = 'APE';
 
@@ -48,12 +47,9 @@ class ActionsDolisirene
         return 0;
     }
 
-    /**
-     * Inject autocomplete JS on societe/card.php create/edit page (fires at end of every page).
-     */
-    public function beforeBodyClose($parameters, &$object, &$action, $hookmanager)
+    public function llxFooter($parameters, &$object, &$action, $hookmanager)
     {
-        global $user, $langs, $conf;
+        global $user, $langs;
 
         if (!isModEnabled('dolisirene')) return 0;
         if (empty($user->id) || !$user->hasRight('dolisirene', 'use')) return 0;
@@ -80,12 +76,14 @@ class ActionsDolisirene
             ),
         );
 
-        $out = "\n<!-- Dolisirene autocomplete v1.2 -->\n";
-        $out .= '<script>window.dolisirene_autocomplete = '.json_encode($cfg).';</script>'."\n";
+        $nonce = function_exists('getNonce') ? getNonce() : '';
+        $out  = "\n<!-- Dolisirene autocomplete v1.3 -->\n";
+        $out .= '<script nonce="'.$nonce.'">window.dolisirene_autocomplete = '.json_encode($cfg).';</script>'."\n";
+
         $jsPath = dol_buildpath('/dolisirene/js/autocomplete.js', 0);
         $jsUrl  = dol_buildpath('/dolisirene/js/autocomplete.js', 1);
         if (@file_exists($jsPath)) {
-            $out .= '<script src="'.$jsUrl.'?v='.@filemtime($jsPath).'"></script>'."\n";
+            $out .= '<script nonce="'.$nonce.'" src="'.$jsUrl.'?v='.@filemtime($jsPath).'"></script>'."\n";
         }
         $out .= "<!-- End Dolisirene -->\n";
 
