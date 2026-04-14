@@ -23,7 +23,7 @@ class modDolisirene extends DolibarrModules
         $this->descriptionlong = "Recherche des entreprises francaises par nom via l'API Recherche Entreprises (data.gouv.fr), cree un tiers pre-rempli (SIRET, TVA intra, adresse, NAF) et complete les fiches tiers existantes lorsque des informations manquent.";
         $this->editor_name = 'Siliteo';
         $this->editor_url = 'https://www.siliteo.fr';
-        $this->version = '1.3.0';
+        $this->version = '1.4.0';
         $this->const_name = 'MAIN_MODULE_DOLISIRENE';
         $this->picto = 'fa-building';
 
@@ -67,20 +67,6 @@ class modDolisirene extends DolibarrModules
         $r++;
 
         $this->menu = array();
-        $this->menu[0] = array(
-            'fk_menu' => 'fk_mainmenu=companies',
-            'type' => 'left',
-            'titre' => 'DolisireneSearch',
-            'mainmenu' => 'companies',
-            'leftmenu' => 'dolisirene_search',
-            'url' => '/custom/dolisirene/search.php',
-            'langs' => 'dolisirene@dolisirene',
-            'position' => 101,
-            'enabled' => '$conf->dolisirene->enabled',
-            'perms' => '$user->hasRight("dolisirene","use")',
-            'target' => '',
-            'user' => 2,
-        );
 
         $this->tabs = array();
     }

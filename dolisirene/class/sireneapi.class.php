@@ -36,6 +36,8 @@ class SireneAPI
             'q' => $query,
             'per_page' => max(1, min(25, (int) $limit)),
             'page' => 1,
+            // Only active (non-radiees) companies
+            'etat_administratif' => 'A',
         );
         if (!empty($postalCode)) {
             $params['code_postal'] = preg_replace('/[^0-9]/', '', $postalCode);
@@ -57,6 +59,7 @@ class SireneAPI
         foreach ($data['results'] as $r) {
             $item = $this->normalizeResult($r);
             if ($item === null) continue;
+            if (!$item['active']) continue; // safety: only active
             if (!empty($city) && stripos($item['city'], $city) === false) continue;
             $out[] = $item;
         }

@@ -83,9 +83,13 @@
         }
         var html = '<div class="dolisirene-autoc-header" style="padding:6px 10px;background:#f4f6f8;color:#666;font-size:.85em;">'+esc(cfg.labels.source)+'</div>';
         list.forEach(function(r, i){
+            var streetLine = [r.address, r.address2].filter(Boolean).join(', ');
+            var cityLine = [r.postal_code, r.city].filter(Boolean).join(' ');
             html += '<div class="dolisirene-autoc-item" data-idx="'+i+'" style="padding:8px 10px;border-top:1px solid #eee;cursor:pointer;">'
-                 +  '<div style="font-weight:600;">'+esc(r.name)+'</div>'
-                 +  '<div style="color:#666;">'+esc(r.postal_code)+' '+esc(r.city)+' &middot; SIRET '+esc(r.siret)+'</div>'
+                 +  '<div style="font-weight:600;">'+esc(r.name)+'</div>';
+            if (streetLine) html += '<div style="color:#555;">'+esc(streetLine)+'</div>';
+            html +=  '<div style="color:#666;">'+esc(cityLine)+' &middot; SIRET '+esc(r.siret)
+                 +   (r.ape ? ' &middot; APE '+esc(r.ape) : '')+'</div>'
                  +  '</div>';
         });
         box.innerHTML = html;
