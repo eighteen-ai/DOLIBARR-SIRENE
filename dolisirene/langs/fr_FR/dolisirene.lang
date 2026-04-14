@@ -22,3 +22,5 @@ DolisireneMaxResults = Nombre maximum de resultats
 DolisireneCountryId = ID du pays par defaut (France = 1)
 DolisireneAbout = Module de recherche et creation de tiers a partir des donnees officielles Sirene
 DolisireneAboutSource = Source des donnees :
+DolisireneSource = Suggestions Sirene (data.gouv.fr) - cliquez pour pre-remplir
+DolisireneApply = Appliquer

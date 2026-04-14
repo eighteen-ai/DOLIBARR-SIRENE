@@ -47,4 +47,59 @@ class ActionsDolisirene
 
         return 0;
     }
+
+    /**
+     * Inject autocomplete on the third-party create form (societe/card.php?action=create).
+     * Fires at the end of the page, in the societecard context.
+     */
+    public function printCommonFooter($parameters, &$object, &$action, $hookmanager)
+    {
+        global $user, $langs, $conf;
+
+        if (!isModEnabled('dolisirene')) return 0;
+        if (empty($user->id) || !$user->hasRight('dolisirene', 'use')) return 0;
+
+        $ctx = $parameters['context'] ?? '';
+        if (stripos($ctx, 'thirdpartycard') === false && stripos($ctx, 'societecard') === false) return 0;
+
+        // Only on create/edit forms
+        $uri = $_SERVER['REQUEST_URI'] ?? '';
+        $isCreate = (strpos($uri, 'action=create') !== false) || ($action === 'create');
+        $isEdit   = (strpos($uri, 'action=edit') !== false)   || ($action === 'edit');
+        if (!$isCreate && !$isEdit) return 0;
+
+        $langs->load("dolisirene@dolisirene");
+
+        $ajaxUrl = dol_buildpath('/dolisirene/ajax/search.php', 1);
+        $token = newToken();
+
+        $cfg = array(
+            'ajax_url' => $ajaxUrl,
+            'token' => $token,
+            'mode' => 'autocomplete',
+            'country_id' => (int) getDolGlobalInt('DOLISIRENE_COUNTRY_ID', 1),
+            'labels' => array(
+                'searching' => $langs->transnoentities("DolisireneSearching"),
+                'no_results' => $langs->transnoentities("DolisireneNoResults"),
+                'source' => $langs->transnoentities("DolisireneSource"),
+                'apply' => $langs->transnoentities("DolisireneApply"),
+            ),
+        );
+
+        $out = "\n<!-- Dolisirene autocomplete -->\n";
+        $out .= '<script>window.dolisirene_autocomplete = '.json_encode($cfg).';</script>'."\n";
+        $jsPath = dol_buildpath('/dolisirene/js/autocomplete.js', 0);
+        $jsUrl  = dol_buildpath('/dolisirene/js/autocomplete.js', 1);
+        if (@file_exists($jsPath)) {
+            $out .= '<script src="'.$jsUrl.'?v='.@filemtime($jsPath).'"></script>'."\n";
+        }
+        $cssPath = dol_buildpath('/dolisirene/css/dolisirene.css', 0);
+        $cssUrl  = dol_buildpath('/dolisirene/css/dolisirene.css', 1);
+        if (@file_exists($cssPath)) {
+            $out .= '<link rel="stylesheet" href="'.$cssUrl.'?v='.@filemtime($cssPath).'">'."\n";
+        }
+
+        $this->resprints = $out;
+        return 0;
+    }
 }
